@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "salt-intrusion-1d"
+version = "1.0.1"
+description = "Didactic one-dimensional advection-dispersion model for salt intrusion"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "scipy>=1.11",
+]
+
+[project.scripts]
+salt-intrusion-compare = "salt_intrusion_1d.experiment:main"
+salt-intrusion-periodicity = "salt_intrusion_1d.periodicity:main"
+salt-intrusion-article-update = "salt_intrusion_1d.article_update:main"
+salt-intrusion-convergence = "salt_intrusion_1d.convergence:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

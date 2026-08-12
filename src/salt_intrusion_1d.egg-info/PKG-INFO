@@ -1,0 +1,353 @@
+Metadata-Version: 2.4
+Name: salt-intrusion-1d
+Version: 1.0.0
+Summary: Didactic one-dimensional advection-dispersion model for salt intrusion
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: matplotlib>=3.8
+Requires-Dist: numpy>=1.26
+Requires-Dist: scipy>=1.11
+
+# Intrusão salina 1D: comparação de condições de contorno
+
+Este repositório contém um modelo didático unidimensional de
+advecção–dispersão para estudar a intrusão salina e, em particular, comparar
+duas condições de contorno na extremidade a montante \(x=L\).
+
+O problema sintético foi inspirado no trecho do Rio São Mateus utilizado no
+artigo. Vazões, geometria, período de maré e escalas de salinidade têm
+magnitudes representativas do RSM, mas as forçantes são funções periódicas
+idealizadas, e não séries observadas. Portanto, o experimento **não constitui
+um modelo calibrado nem uma previsão hidrodinâmica**. Seu objetivo é verificar
+o comportamento numérico da condição de contorno antes de incorporá-la à
+implementação principal do estudo.
+
+## Modelo
+
+A concentração \(C(x,t)\) satisfaz
+
+\[
+\frac{\partial C}{\partial t}
++u(t)\frac{\partial C}{\partial x}
+=D(t)\frac{\partial^2 C}{\partial x^2},
+\qquad 0<x<L.
+\]
+
+A velocidade média é prescrita por
+
+\[
+u(t)=-u_{\mathrm{rio}}+U_m\sin(\omega t),
+\]
+
+e a dispersão pode ser constante ou dependente do módulo da velocidade:
+
+\[
+D(t)=D_0+\kappa |u(t)|B.
+\]
+
+Em \(x=0\), a extremidade marítima é tratada como um reservatório salino:
+
+\[
+C(0,t)=C_{\mathrm{mar}}(t).
+\]
+
+Em \(x=L\), são comparadas:
+
+1. Neumann homogênea em todos os instantes,
+
+   \[
+   \frac{\partial C}{\partial x}(L,t)=0;
+   \]
+
+2. condição comutável Neumann–Danckwerts:
+
+   - se \(u(t)\geq0\), mantém-se Neumann homogênea;
+   - se \(u(t)<0\), \(x=L\) é uma entrada advectiva e impõe-se
+
+     \[
+     uC-D\frac{\partial C}{\partial x}
+     =uC_{\mathrm{mont}}.
+     \]
+
+Com diferença regressiva na fronteira direita,
+
+\[
+C_N=\frac{D}{D-u\Delta x}C_{N-1}
+    +\frac{-u\Delta x}{D-u\Delta x}C_{\mathrm{mont}}.
+\]
+
+Como \(u<0\), o denominador é
+\(D-u\Delta x=D+|u|\Delta x>0\). A expressão é uma média ponderada
+entre a concentração interior e a concentração da água proveniente de
+montante.
+
+## Método numérico
+
+- Euler implícito no tempo;
+- Upwind de primeira ordem para a advecção, conforme o sinal de \(u(t)\);
+- diferenças centrais para a dispersão;
+- solução do sistema tridiagonal com `scipy.linalg.solve_banded`;
+- interpolação linear da última passagem por \(C_{\mathrm{lim}}\) para calcular
+  o comprimento de intrusão;
+- armazenamento espaçado dos perfis completos para limitar o uso de memória,
+  preservando as séries temporais das métricas em todos os passos.
+
+## Caso sintético original de diagnóstico
+
+| Parâmetro | Valor |
+|---|---:|
+| Domínio numérico | \(0\leq x\leq 50\) km |
+| Seção marítima efetiva | 10 km da foz |
+| Trecho representado | 10–60 km da foz |
+| Malha | 500 células, \(\Delta x=100\) m |
+| Passo de tempo | 60 s |
+| Período de maré | 12,4 h |
+| Vazões comparadas | 10 e 2 m³/s |
+| Área efetiva | 1.050 m² |
+| Amplitude de velocidade da maré | 0,35 m/s |
+| Salinidade marítima | \(12+4\sin(\omega t)\) PSU |
+| Salinidade a montante | 0 PSU |
+| Limiar de intrusão | 0,5 PSU |
+| Dispersão de base \(D_0\) | 50 m²/s |
+| Coeficiente \(\kappa\) | 0,5 |
+
+O comprimento armazenado pelo solver é medido a partir de \(x=0\). Os arquivos
+do experimento também informam a distância à foz, obtida pela soma do
+deslocamento de 10 km.
+
+## Instalação e execução
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+salt-intrusion-compare --cycles 60 --output results
+```
+
+Para avançar automaticamente até um regime periódico no caso crítico:
+
+```bash
+salt-intrusion-periodicity --discharge 2 --output results_periodicity_Q2
+```
+
+Para uma verificação rápida:
+
+```bash
+salt-intrusion-compare --cycles 3 --cells 200 --output results_quick
+```
+
+O experimento gera:
+
+- `summary.csv`, com as métricas do último ciclo;
+- `last_cycle_timeseries.csv`, com as séries do último ciclo;
+- `cycle_summary.csv`, com a evolução ciclo a ciclo e diagnósticos de
+  periodicidade;
+- gráficos separados de comprimento de intrusão, perfil final e salinidade em
+  \(x=L\), para cada vazão.
+
+O experimento de periodicidade gera:
+
+- `periodicity_diagnostics.csv`, com as três medidas de convergência em todos
+  os ciclos;
+- `periodic_last_cycle_timeseries.csv`, com a série completa do último ciclo;
+- quatro figuras com a evolução, os critérios de parada, o último ciclo e a
+  salinidade em \(x=L\).
+
+A versão 0.3.0 acrescenta, no notebook de periodicidade, a investigação do
+máximo pontudo observado em \(C(L,t)\):
+
+- os instantes exatos em que \(u(t)\) muda de sinal são marcados no gráfico;
+- a solução periódica padrão, com \(\Delta t=60\) s, é comparada a uma nova
+  solução com \(\Delta t=30\) s;
+- são exportados o gráfico
+  `temporal_refinement_right_boundary.png` e a tabela
+  `temporal_refinement_summary.csv`.
+
+A versão 0.6.0 resolve diretamente o ponto fixo do mapa de uma maré por GMRES
+matricialmente livre. Esse procedimento evita que um transiente muito lento
+seja confundido com periodicidade em domínios longos. A sensibilidade é
+avaliada de \(L=50\) a \(600\) km, sempre com
+\(\Delta x=100\) m, e inclui gráficos específicos da convergência da salinidade
+na captação e da posição da frente.
+
+A versão 0.7.0 acrescenta a configuração revisada para o artigo de ensino,
+mantendo o horizonte transiente de 60 ciclos (31 dias):
+
+\[
+D(t)=30+0{,}25\,|u(t)|B\quad \mathrm{m^2/s}.
+\]
+
+A escolha não resulta de calibração com dados. Ela foi obtida por uma
+varredura controlada em \(D_0\) e \(\kappa\), com três critérios de
+independência do domínio entre \(L=50\) e \(60\) km: diferença inferior a
+0,05 PSU na salinidade média da captação, diferenças inferiores a 0,1 km nas
+frentes média e máxima e margem mínima de 5 km até a fronteira. O comando
+
+```bash
+salt-intrusion-article-update --output results_article_update_v0.7
+```
+
+reproduz a varredura, os dois cenários de vazão, a comparação entre dispersão
+constante e dependente da velocidade e o refinamento conjunto de espaço e
+tempo.
+
+A versão 0.9.0 mantém os refinamentos espacial e temporal separados e
+acrescenta soluções numéricas de referência. No cenário crítico, as ordens
+são estimadas por autoconvergência e os erros são também medidos contra:
+
+- referência espacial: \(\Delta x=6{,}25\) m e \(\Delta t=15\) s;
+- referência temporal: \(\Delta x=25\) m e \(\Delta t=3{,}75\) s;
+- referência conjunta: \(\Delta x=6{,}25\) m e
+  \(\Delta t=3{,}75\) s.
+
+Os resultados confirmam ordem aproximadamente unitária, coerente com Upwind e
+Euler implícito. Para as simulações finais do artigo, recomenda-se
+\(\Delta x=12{,}5\) m e \(\Delta t=7{,}5\) s. Essa malha reduz para cerca de
+um terço os erros observados com \(25\) m e \(15\) s quando ambas são
+comparadas à referência conjunta:
+
+```bash
+salt-intrusion-convergence --output results_convergence_v0.9
+```
+
+O relatório completo está em `CONVERGENCE_REPORT.md`.
+
+## Google Colab
+
+O projeto inclui seis notebooks:
+
+1. `comparacao_condicoes_contorno.ipynb`, para reproduzir a comparação de 60
+   ciclos;
+2. `regime_periodico.ipynb`, para executar a parada automática;
+3. `sensibilidade_comprimento_dominio.ipynb`, para determinar um domínio
+   numericamente suficiente no caso crítico, comparando comprimentos entre
+   \(L=50\) e \(600\) km por meio do ponto fixo periódico direto.
+4. `ajuste_parametros_artigo.ipynb`, para reproduzir a configuração transiente
+   revisada usada no artigo de ensino.
+5. `estudo_convergencia.ipynb`, para reproduzir os refinamentos espacial e
+   temporal separados, as referências e as tabelas e figuras da versão 0.9.0;
+6. `balanco_conteudo_salino.ipynb`, para verificar a identidade conservativa
+   discreta e o balanço físico aproximado do conteúdo salino integrado.
+
+No Colab, faça upload do notebook desejado e do arquivo
+`salt_intrusion_1d_v1.0.0.zip`. A primeira célula instala o pacote
+automaticamente. Use uma sessão nova para evitar que uma versão anterior do
+pacote permaneça carregada na memória.
+
+## Testes
+
+Os 30 testes usam apenas a biblioteca-padrão `unittest`:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+Eles verificam a relação discreta de Danckwerts, as identidades de fluxo e de
+conservação, o fator de área no conteúdo salino integrado, a preservação de
+soluções constantes, positividade, limitação da solução e armazenamento do
+perfil final.
+
+Além do diagnóstico posterior em `cycle_summary.csv`, o pacote oferece duas
+formas de obter o regime periódico. A marcha ciclo a ciclo aceita a solução
+quando
+
+\[
+\|C_k-C_{k-1}\|_\infty\leq10^{-3}\ {\rm PSU},
+\qquad
+\frac{|M_k-M_{k-1}|}{|M_{k-1}|}\leq10^{-4},
+\qquad
+|\overline L_{s,k}-\overline L_{s,k-1}|\leq10\ {\rm m},
+\]
+
+durante três ciclos consecutivos, após pelo menos 20 ciclos. A execução é
+interrompida sem afirmar convergência caso alcance o limite de 400 ciclos.
+
+Para estudos com domínios longos, a versão 0.6.0 usa preferencialmente
+`solve_periodic_fixed_point`. Como o modelo é linear e as forçantes são
+periódicas, um ciclo define o mapa afim \(F(C)=AC+b\). A solução periódica é
+obtida de
+
+\[
+(I-A)C=b,
+\]
+
+com GMRES matricialmente livre, e verificada pelo resíduo
+\(\|F(C)-C\|_\infty\).
+
+## Estrutura
+
+```text
+.
+├── notebooks/
+│   ├── comparacao_condicoes_contorno.ipynb
+│   ├── balanco_conteudo_salino.ipynb
+│   ├── regime_periodico.ipynb
+│   └── sensibilidade_comprimento_dominio.ipynb
+├── src/salt_intrusion_1d/
+│   ├── __init__.py
+│   ├── convergence.py
+│   ├── domain_sensitivity.py
+│   ├── experiment.py
+│   ├── model.py
+│   └── periodicity.py
+├── tests/
+│   └── test_model.py
+├── .gitignore
+├── pyproject.toml
+├── VALIDATION.md
+├── CONVERGENCE_REPORT.md
+└── README.md
+```
+
+## Observações científicas
+
+- A condição de Dirichlet em \(x=0\) é mantida porque essa seção é interpretada
+  como um reservatório marítimo com salinidade prescrita.
+- A condição de Danckwerts é aplicada somente em \(x=L\) e somente quando
+  \(u<0\).
+- A condição inicial padrão é nula no interior, com o valor de Dirichlet
+  aplicado no nó \(x=0\). Isso explicita a incompatibilidade no canto
+  \((0,0)\) presente no experimento original. O código também oferece uma
+  camada inicial exponencial por meio de `initial_condition="exponential"`.
+- A comparação sintética verifica a implementação e as consequências do
+  fechamento de fronteira. Validação física requer dados observacionais ou
+  comparação com um modelo hidrodinâmico mais completo.
+- Com a configuração padrão e \(Q=2\,\mathrm{m^3/s}\), os critérios automáticos
+  são satisfeitos no ciclo 268. A frente máxima fica próxima de \(x=L\); por
+  isso, um teste de sensibilidade ao comprimento do domínio deve preceder a
+  interpretação física dos valores.
+- A solução direta mostra que os critérios ciclo a ciclo param ligeiramente
+  antes do ponto fixo mesmo em \(L=50\) km e podem ser enganados por modos
+  transientes muito lentos quando \(L\) cresce.
+- Segundo os limites de 0,05 PSU na média da captação e 0,1 km na intrusão
+  média e máxima, confirmados em dois pares consecutivos, \(L=550\) km é
+  numericamente suficiente. Esse comprimento não é fisicamente plausível para
+  um modelo homogêneo do RSM; ele diagnostica a necessidade de rever ou
+  calibrar a parametrização antes de qualquer interpretação quantitativa.
+- Para o horizonte transiente efetivamente estudado no artigo, a configuração
+  revisada \(D_0=30\,\mathrm{m^2/s}\), \(\kappa=0{,}25\) torna \(L=50\) km
+  suficiente segundo os mesmos limites. Na malha adotada na versão 0.9.0,
+  \(12{,}5\) m e \(7{,}5\) s, a ampliação para 60 km muda as frentes média e
+  máxima em cerca de 0,0052 km e a média na captação em 0,00043 PSU.
+- O máximo de \(C(L,t)\) coincide, dentro da resolução temporal, com a mudança
+  de \(u>0\) para \(u<0\), quando a condição em \(x=L\) troca de Neumann para
+  Danckwerts. Ao reduzir \(\Delta t\) de 60 s para 30 s, o máximo muda menos de
+  \(0{,}005\) PSU e o formato pontudo permanece.
+- No caso \(Q=2\,\mathrm{m^3/s}\), as diferenças diminuem ao passar da
+  comparação \(50\)--\(60\) km para \(60\)--\(70\) km, mas permanecem
+  materiais inclusive na captação. A frente média ainda avança cerca de
+  8,8 km quando o domínio cresce de 60 para 70 km. Portanto, nem mesmo
+  \(L=70\) km demonstra independência suficiente da fronteira para esta
+  parametrização sintética.
+- Os resultados e as limitações verificadas nesta versão estão documentados em
+  [`VALIDATION.md`](VALIDATION.md).
+
+## Referências
+
+- P. V. Danckwerts, “Continuous flow systems: Distribution of residence
+  times”, *Chemical Engineering Science*, 2, 1–13 (1953).
+  <https://doi.org/10.1016/0009-2509(53)80001-1>
+- M. Th. van Genuchten e J. C. Parker, “Boundary conditions for displacement
+  experiments through short laboratory soil columns”, *Soil Science Society
+  of America Journal*, 48, 703–708 (1984).
+  <https://doi.org/10.2136/sssaj1984.03615995004800040002x>

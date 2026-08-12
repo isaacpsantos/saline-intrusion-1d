@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+src/salt_intrusion_1d/__init__.py
+src/salt_intrusion_1d/article_update.py
+src/salt_intrusion_1d/convergence.py
+src/salt_intrusion_1d/domain_sensitivity.py
+src/salt_intrusion_1d/experiment.py
+src/salt_intrusion_1d/model.py
+src/salt_intrusion_1d/periodicity.py
+src/salt_intrusion_1d.egg-info/PKG-INFO
+src/salt_intrusion_1d.egg-info/SOURCES.txt
+src/salt_intrusion_1d.egg-info/dependency_links.txt
+src/salt_intrusion_1d.egg-info/entry_points.txt
+src/salt_intrusion_1d.egg-info/requires.txt
+src/salt_intrusion_1d.egg-info/top_level.txt
+tests/test_model.py

@@ -1,0 +1,5 @@
+[console_scripts]
+salt-intrusion-article-update = salt_intrusion_1d.article_update:main
+salt-intrusion-compare = salt_intrusion_1d.experiment:main
+salt-intrusion-convergence = salt_intrusion_1d.convergence:main
+salt-intrusion-periodicity = salt_intrusion_1d.periodicity:main
