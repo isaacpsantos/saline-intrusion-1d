@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "Saline Intrusion 1D"
+type: software
+version: 1.0.1
+date-released: 2026-08-12
+
+authors:
+  - family-names: "Santos"
+    given-names: "Isaac P."
+  - family-names: "Sampaio"
+    given-names: "Emanuel P."
+  - family-names: "Silva"
+    given-names: "Paulo R. V."
+  - family-names: "Santos"
+    given-names: "Roberta S."
+  - family-names: "Santos"
+    given-names: "Yasmin P. L. S."
+  - family-names: "Cezana"
+    given-names: "Fernanda C."
+  - family-names: "Cardoso"
+    given-names: "Valdinei C."
+
+repository-code: "https://github.com/IsaacPSantos/saline-intrusion-1d"
+license: "MIT"
