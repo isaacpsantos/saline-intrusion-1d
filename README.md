@@ -13,6 +13,10 @@ um modelo calibrado nem uma previsão hidrodinâmica**. Seu objetivo é verifica
 o comportamento numérico da condição de contorno antes de incorporá-la à
 implementação principal do estudo.
 
+## DOI
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21897653.svg)](https://doi.org/10.5281/zenodo.21897653)
+
 ## Modelo
 
 A concentração $C(x,t)$ satisfaz
